@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galaxy in Brane-World Gravity with Dark Matter</title>
+    <title>3D Galaxy in Brane-World Gravity with Dark Matter</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
@@ -45,7 +45,7 @@
     </style>
 </head>
 <body>
-    <h1>Galaxy in Brane-World Gravity with Dark Matter</h1>
+    <h1>3D Galaxy in Brane-World Gravity with Dark Matter</h1>
     <canvas id="visualization" width="800" height="600"></canvas>
     <div id="controls">
         <button onclick="toggleDarkMatter()">Toggle Dark Matter Halo</button>
@@ -64,7 +64,7 @@
     </div>
     <h2>Explanation</h2>
     <p>
-        This visualization depicts a spiral galaxy as a 4D brane (blue disk with white stars) at \( y = 0 \) in a 5D bulk (gray grid). The green pulsating halo represents the dark matter scalar field \( \phi(x^\mu, y) \), computed with Kaluza-Klein modes, influencing the galaxy via the Weyl tensor \( E_{\mu\nu} \) (red perturbations). Adjust the number of KK modes, compactification length \( L \), and Weyl tensor strength to explore their effects.
+        This visualization shows a spiral galaxy on a 4D brane (blue disk with white stars) at \( y = 0 \) in a 5D bulk. The dark matter scalar field \( \phi(x^\mu, y) \) is represented by colored particles in the bulk, with color indicating field strength (blue = low, white = medium, red = high) and depth suggesting the extra dimension (fainter particles are farther in \( y \)). Red radial lines on the galaxy depict gravitational perturbations from the Weyl tensor \( E_{\mu\nu} \). Use the controls to adjust parameters and explore the model.
     </p>
 
     <script>
@@ -76,14 +76,24 @@
         let weylStrength = 1;
         let time = 0;
 
-        // Galaxy star positions
+        // Galaxy stars
         const stars = [];
         for (let i = 0; i < 200; i++) {
             let r = Math.random() * 200;
             let theta = Math.random() * 2 * Math.PI;
-            let arm = Math.floor(Math.random() * 2) * Math.PI; // Two spiral arms
-            theta += 0.5 * r + arm; // Spiral structure
+            let arm = Math.floor(Math.random() * 2) * Math.PI;
+            theta += 0.5 * r + arm;
             stars.push({ r, theta });
+        }
+
+        // Dark matter particles
+        const N_particles = 500;
+        const particles = [];
+        for (let i = 0; i < N_particles; i++) {
+            let x = (Math.random() - 0.5) * 800; // [-400,400]
+            let z = (Math.random() - 0.5) * 800; // [-400,400]
+            let y = Math.random() * 100; // [0,100]
+            particles.push({ x, y, z });
         }
 
         function toggleDarkMatter() {
@@ -109,7 +119,6 @@
         function drawBulk() {
             ctx.strokeStyle = '#555';
             ctx.lineWidth = 1;
-            // Draw 5D bulk as a grid
             for (let x = 0; x <= canvas.width; x += 50) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
@@ -124,11 +133,50 @@
             }
             ctx.fillStyle = '#fff';
             ctx.font = '16px Arial';
-            ctx.fillText('5D Bulk, y ∈ [0, L]', 10, 30);
+            ctx.fillText('5D Bulk', 10, 30);
+        }
+
+        function drawDarkMatterParticles() {
+            if (!showDarkMatter) return;
+            const L = compactLength * 10; // L from 10 to 100
+            const max_phi = 3;
+            particles.forEach(p => {
+                let phi = 0;
+                for (let n = 1; n <= kkModes; n++) {
+                    let a_n = 1 / n;
+                    let k_n = n * 0.01;
+                    let omega_n = n * 0.1;
+                    let phi_n = a_n * Math.sin(k_n * p.x + omega_n * time);
+                    let y_comp = Math.cos(n * Math.PI * p.y / L);
+                    phi += phi_n * y_comp;
+                }
+                let phi_norm = Math.max(-1, Math.min(1, phi / max_phi));
+                let normalized_phi = (phi_norm + 1) / 2;
+                let r, g, b;
+                if (normalized_phi < 0.5) {
+                    let t = 2 * normalized_phi;
+                    r = 255 * t;
+                    g = 255 * t;
+                    b = 255;
+                } else {
+                    let t = 2 * (normalized_phi - 0.5);
+                    r = 255;
+                    g = 255 * (1 - t);
+                    b = 255 * (1 - t);
+                }
+                let alpha = 1 - p.y / L;
+                let canvas_x = 400 + p.x;
+                let canvas_y = 300 + p.z + 0.2 * p.y;
+                let size = 2 * (1 - p.y / L);
+                ctx.beginPath();
+                ctx.arc(canvas_x, canvas_y, size, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+                ctx.fill();
+            });
         }
 
         function drawGalaxy() {
-            // Draw galactic disk (4D brane)
+            // Draw galactic disk
             ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
             ctx.beginPath();
             ctx.arc(400, 300, 200, 0, 2 * Math.PI);
@@ -136,9 +184,6 @@
             ctx.strokeStyle = '#00f';
             ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.fillStyle = '#fff';
-            ctx.fillText('4D Brane (Galaxy, y = 0)', 350, 280);
-
             // Draw stars
             ctx.fillStyle = '#fff';
             stars.forEach(star => {
@@ -150,44 +195,11 @@
             });
         }
 
-        function drawDarkMatterHalo() {
-            if (!showDarkMatter) return;
-            ctx.strokeStyle = '#0f0';
-            ctx.lineWidth = 2;
-            // Draw concentric halos influenced by KK modes
-            for (let r = 220; r <= 300; r += 20) {
-                ctx.beginPath();
-                for (let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
-                    let x = 400 + r * Math.cos(theta);
-                    let y = 300 + r * Math.sin(theta);
-                    let phi = 0;
-                    // Compute scalar field with KK modes
-                    for (let n = 1; n <= kkModes; n++) {
-                        let phi_n = 10 / n * Math.sin((r * 0.02 + time) * Math.PI);
-                        let y_comp = Math.cos(n * Math.PI * ((y - 300) / 200) / compactLength);
-                        phi += phi_n * y_comp;
-                    }
-                    x += phi * Math.cos(theta);
-                    y += phi * Math.sin(theta);
-                    if (theta === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.fillStyle = '#0f0';
-            ctx.fillText('Dark Matter Halo φ(xᵝ, y)', 350, 80);
-        }
-
         function drawGravitationalEffects() {
-            // Simulate Weyl tensor perturbations on galaxy
             ctx.strokeStyle = '#f00';
             ctx.lineWidth = 2;
             for (let theta = 0; theta < 2 * Math.PI; theta += Math.PI / 4) {
-                let amplitude = 0;
-                for (let n = 1; n <= kkModes; n++) {
-                    amplitude += weylStrength * 10 / n * Math.sin((200 * 0.02 + time) * Math.PI);
-                }
+                let amplitude = weylStrength * 20 * Math.sin(time + theta);
                 let x1 = 400 + 180 * Math.cos(theta);
                 let y1 = 300 + 180 * Math.sin(theta);
                 let x2 = 400 + (180 + amplitude) * Math.cos(theta);
@@ -197,15 +209,13 @@
                 ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
-            ctx.fillStyle = '#f00';
-            ctx.fillText('Weyl Tensor Eᵢᵥ', 350, 520);
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawBulk();
+            drawDarkMatterParticles();
             drawGalaxy();
-            drawDarkMatterHalo();
             drawGravitationalEffects();
         }
 
