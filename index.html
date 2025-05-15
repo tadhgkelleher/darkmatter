@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brane-World Gravity & Dark Matter Visualization</title>
+    <title>Galaxy in Brane-World Gravity with Dark Matter</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
@@ -45,10 +45,10 @@
     </style>
 </head>
 <body>
-    <h1>Brane-World Gravity & Dark Matter Field Visualization</h1>
+    <h1>Galaxy in Brane-World Gravity with Dark Matter</h1>
     <canvas id="visualization" width="800" height="600"></canvas>
     <div id="controls">
-        <button onclick="toggleDarkMatter()">Toggle Dark Matter Field</button>
+        <button onclick="toggleDarkMatter()">Toggle Dark Matter Halo</button>
         <label for="kkModes">KK Modes (n): </label>
         <input type="range" id="kkModes" min="1" max="5" step="1" value="3">
         <label for="compactLength">Compactification Length (L): </label>
@@ -64,7 +64,7 @@
     </div>
     <h2>Explanation</h2>
     <p>
-        The gray grid represents the 5D bulk with a compactified fifth dimension \( y \in [0, L] \). The blue plane at \( y = 0 \) is the 4D brane (our universe). The green wave depicts the dark matter scalar field \( \phi(x^\mu, y) \), computed with Kaluza-Klein modes. Red perturbations on the brane represent the Weyl tensor \( E_{\mu\nu} \), influenced by the bulk field. Adjust the number of KK modes, compactification length \( L \), and Weyl tensor strength using the sliders.
+        This visualization depicts a spiral galaxy as a 4D brane (blue disk with white stars) at \( y = 0 \) in a 5D bulk (gray grid). The green pulsating halo represents the dark matter scalar field \( \phi(x^\mu, y) \), computed with Kaluza-Klein modes, influencing the galaxy via the Weyl tensor \( E_{\mu\nu} \) (red perturbations). Adjust the number of KK modes, compactification length \( L \), and Weyl tensor strength to explore their effects.
     </p>
 
     <script>
@@ -75,6 +75,16 @@
         let compactLength = 5;
         let weylStrength = 1;
         let time = 0;
+
+        // Galaxy star positions
+        const stars = [];
+        for (let i = 0; i < 200; i++) {
+            let r = Math.random() * 200;
+            let theta = Math.random() * 2 * Math.PI;
+            let arm = Math.floor(Math.random() * 2) * Math.PI; // Two spiral arms
+            theta += 0.5 * r + arm; // Spiral structure
+            stars.push({ r, theta });
+        }
 
         function toggleDarkMatter() {
             showDarkMatter = !showDarkMatter;
@@ -96,7 +106,7 @@
             draw();
         });
 
-        function drawGrid() {
+        function drawBulk() {
             ctx.strokeStyle = '#555';
             ctx.lineWidth = 1;
             // Draw 5D bulk as a grid
@@ -112,69 +122,90 @@
                 ctx.lineTo(canvas.width, y);
                 ctx.stroke();
             }
-            // Indicate compactified dimension y
             ctx.fillStyle = '#fff';
             ctx.font = '16px Arial';
-            ctx.fillText('y ∈ [0, L]', 10, 30);
+            ctx.fillText('5D Bulk, y ∈ [0, L]', 10, 30);
         }
 
-        function drawBrane() {
-            // Draw 4D brane at y = 0
-            ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
-            ctx.fillRect(100, 100, 600, 400);
+        function drawGalaxy() {
+            // Draw galactic disk (4D brane)
+            ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(400, 300, 200, 0, 2 * Math.PI);
+            ctx.fill();
             ctx.strokeStyle = '#00f';
             ctx.lineWidth = 2;
-            ctx.strokeRect(100, 100, 600, 400);
+            ctx.stroke();
             ctx.fillStyle = '#fff';
-            ctx.fillText('4D Brane (y = 0)', 110, 120);
+            ctx.fillText('4D Brane (Galaxy, y = 0)', 350, 280);
+
+            // Draw stars
+            ctx.fillStyle = '#fff';
+            stars.forEach(star => {
+                let x = 400 + star.r * Math.cos(star.theta + time * 0.05);
+                let y = 300 + star.r * Math.sin(star.theta + time * 0.05);
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, 2 * Math.PI);
+                ctx.fill();
+            });
         }
 
-        function drawDarkMatterField() {
+        function drawDarkMatterHalo() {
             if (!showDarkMatter) return;
             ctx.strokeStyle = '#0f0';
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            for (let x = 0; x < canvas.width; x += 5) {
-                let y = 300;
-                // Compute scalar field with KK modes
-                for (let n = 1; n <= kkModes; n++) {
-                    let phi_n = 50 / n * Math.sin((x * 0.02 + time) * Math.PI); // Simplified 4D dependence
-                    let y_comp = Math.cos(n * Math.PI * (300 / canvas.height) / compactLength);
-                    y += phi_n * y_comp;
+            // Draw concentric halos influenced by KK modes
+            for (let r = 220; r <= 300; r += 20) {
+                ctx.beginPath();
+                for (let theta = 0; theta <= 2 * Math.PI; theta += 0.1) {
+                    let x = 400 + r * Math.cos(theta);
+                    let y = 300 + r * Math.sin(theta);
+                    let phi = 0;
+                    // Compute scalar field with KK modes
+                    for (let n = 1; n <= kkModes; n++) {
+                        let phi_n = 10 / n * Math.sin((r * 0.02 + time) * Math.PI);
+                        let y_comp = Math.cos(n * Math.PI * ((y - 300) / 200) / compactLength);
+                        phi += phi_n * y_comp;
+                    }
+                    x += phi * Math.cos(theta);
+                    y += phi * Math.sin(theta);
+                    if (theta === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
                 }
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                ctx.closePath();
+                ctx.stroke();
             }
-            ctx.stroke();
             ctx.fillStyle = '#0f0';
-            ctx.fillText('Dark Matter Field φ(xᵝ, y)', 110, 80);
+            ctx.fillText('Dark Matter Halo φ(xᵝ, y)', 350, 80);
         }
 
         function drawGravitationalEffects() {
-            // Simulate Weyl tensor E_{\mu\nu} as perturbations
+            // Simulate Weyl tensor perturbations on galaxy
             ctx.strokeStyle = '#f00';
             ctx.lineWidth = 2;
-            for (let x = 150; x <= 650; x += 100) {
+            for (let theta = 0; theta < 2 * Math.PI; theta += Math.PI / 4) {
                 let amplitude = 0;
                 for (let n = 1; n <= kkModes; n++) {
-                    amplitude += weylStrength * 20 / n * Math.sin((x * 0.02 + time) * Math.PI);
+                    amplitude += weylStrength * 10 / n * Math.sin((200 * 0.02 + time) * Math.PI);
                 }
+                let x1 = 400 + 180 * Math.cos(theta);
+                let y1 = 300 + 180 * Math.sin(theta);
+                let x2 = 400 + (180 + amplitude) * Math.cos(theta);
+                let y2 = 300 + (180 + amplitude) * Math.sin(theta);
                 ctx.beginPath();
-                ctx.moveTo(x, 150);
-                ctx.lineTo(x, 150 + amplitude);
-                ctx.moveTo(x, 450);
-                ctx.lineTo(x, 450 - amplitude);
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
                 ctx.stroke();
             }
             ctx.fillStyle = '#f00';
-            ctx.fillText('Weyl Tensor Eᵢᵥ', 110, 520);
+            ctx.fillText('Weyl Tensor Eᵢᵥ', 350, 520);
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawGrid();
-            drawBrane();
-            drawDarkMatterField();
+            drawBulk();
+            drawGalaxy();
+            drawDarkMatterHalo();
             drawGravitationalEffects();
         }
 
