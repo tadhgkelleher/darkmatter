@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brane-World Gravity & Dark Matter Visualization</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        #visualization {
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #333;
+            background-color: #000;
+        }
+        #controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        button, input, label {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .mathjax {
+            max-width: 800px;
+            margin: 10px auto;
+            line-height: 1.6;
+        }
+        p {
+            max-width: 800px;
+            margin: 10px auto;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Brane-World Gravity & Dark Matter Field Visualization</h1>
+    <canvas id="visualization" width="800" height="600"></canvas>
+    <div id="controls">
+        <button onclick="toggleDarkMatter()">Toggle Dark Matter Field</button>
+        <label for="kkModes">KK Modes (n): </label>
+        <input type="range" id="kkModes" min="1" max="5" step="1" value="3">
+        <label for="compactLength">Compactification Length (L): </label>
+        <input type="range" id="compactLength" min="1" max="10" step="1" value="5">
+        <label for="weylStrength">Weyl Tensor Strength: </label>
+        <input type="range" id="weylStrength" min="0.1" max="2" step="0.1" value="1">
+    </div>
+    <h2>Mathematical Framework</h2>
+    <div class="mathjax">
+        <p>5D Einstein Equations: \( G_{AB}^{(5)} = \kappa_5^2 \left[ T_{AB}^{(\text{bulk})} + \delta(y) T_{\mu\nu}^{(\text{brane})} \right] \)</p>
+        <p>Dark Matter Scalar Field: \( \phi(x^\mu, y) = \sum_{n=0}^\infty \phi_n(x^\mu) \cos\left(\frac{n\pi y}{L}\right) \)</p>
+        <p>Induced 4D Gravity: \( G_{\mu\nu}^{(4)} = 8\pi G_N T_{\mu\nu}^{(\text{vis})} + \kappa_5^4 \Pi_{\mu\nu} - E_{\mu\nu} \)</p>
+    </div>
+    <h2>Explanation</h2>
+    <p>
+        The gray grid represents the 5D bulk with a compactified fifth dimension \( y \in [0, L] \). The blue plane at \( y = 0 \) is the 4D brane (our universe). The green wave depicts the dark matter scalar field \( \phi(x^\mu, y) \), computed with Kaluza-Klein modes. Red perturbations on the brane represent the Weyl tensor \( E_{\mu\nu} \), influenced by the bulk field. Adjust the number of KK modes, compactification length \( L \), and Weyl tensor strength using the sliders.
+    </p>
+
+    <script>
+        const canvas = document.getElementById('visualization');
+        const ctx = canvas.getContext('2d');
+        let showDarkMatter = true;
+        let kkModes = 3;
+        let compactLength = 5;
+        let weylStrength = 1;
+        let time = 0;
+
+        function toggleDarkMatter() {
+            showDarkMatter = !showDarkMatter;
+            draw();
+        }
+
+        document.getElementById('kkModes').addEventListener('input', (e) => {
+            kkModes = parseInt(e.target.value);
+            draw();
+        });
+
+        document.getElementById('compactLength').addEventListener('input', (e) => {
+            compactLength = parseFloat(e.target.value);
+            draw();
+        });
+
+        document.getElementById('weylStrength').addEventListener('input', (e) => {
+            weylStrength = parseFloat(e.target.value);
+            draw();
+        });
+
+        function drawGrid() {
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            // Draw 5D bulk as a grid
+            for (let x = 0; x <= canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            // Indicate compactified dimension y
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px Arial';
+            ctx.fillText('y ∈ [0, L]', 10, 30);
+        }
+
+        function drawBrane() {
+            // Draw 4D brane at y = 0
+            ctx.fillStyle = 'rgba(0, 0, 255, 0.3)';
+            ctx.fillRect(100, 100, 600, 400);
+            ctx.strokeStyle = '#00f';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(100, 100, 600, 400);
+            ctx.fillStyle = '#fff';
+            ctx.fillText('4D Brane (y = 0)', 110, 120);
+        }
+
+        function drawDarkMatterField() {
+            if (!showDarkMatter) return;
+            ctx.strokeStyle = '#0f0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x < canvas.width; x += 5) {
+                let y = 300;
+                // Compute scalar field with KK modes
+                for (let n = 1; n <= kkModes; n++) {
+                    let phi_n = 50 / n * Math.sin((x * 0.02 + time) * Math.PI); // Simplified 4D dependence
+                    let y_comp = Math.cos(n * Math.PI * (300 / canvas.height) / compactLength);
+                    y += phi_n * y_comp;
+                }
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#0f0';
+            ctx.fillText('Dark Matter Field φ(xᵝ, y)', 110, 80);
+        }
+
+        function drawGravitationalEffects() {
+            // Simulate Weyl tensor E_{\mu\nu} as perturbations
+            ctx.strokeStyle = '#f00';
+            ctx.lineWidth = 2;
+            for (let x = 150; x <= 650; x += 100) {
+                let amplitude = 0;
+                for (let n = 1; n <= kkModes; n++) {
+                    amplitude += weylStrength * 20 / n * Math.sin((x * 0.02 + time) * Math.PI);
+                }
+                ctx.beginPath();
+                ctx.moveTo(x, 150);
+                ctx.lineTo(x, 150 + amplitude);
+                ctx.moveTo(x, 450);
+                ctx.lineTo(x, 450 - amplitude);
+                ctx.stroke();
+            }
+            ctx.fillStyle = '#f00';
+            ctx.fillText('Weyl Tensor Eᵢᵥ', 110, 520);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawBrane();
+            drawDarkMatterField();
+            drawGravitationalEffects();
+        }
+
+        function animate() {
+            time += 0.05;
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
